@@ -1,4 +1,10 @@
 query Input {
+  discount {
+    metafield(namespace: "$app:discount-app", key: "settings") {
+      value
+    }
+    discountClasses
+  }
   cart {
     lines {
       id
@@ -7,13 +13,13 @@ query Input {
         ... on ProductVariant {
           id
           product {
-            hasAnyTag(tags: ["NO_DISCOUNT"])
+            hasTags(tags: ["NO_DISCOUNT", "VIP_ONLY", "EMPLOYEE"]) {
+              tag
+              hasTag
+            }
           }
         }
       }
     }
-  }
-  discount {
-    discountClasses
   }
 }

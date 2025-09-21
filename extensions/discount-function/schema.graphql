@@ -395,7 +395,7 @@ input CartLineMinimumSubtotal {
   ids: [ID!]!
 
   """
-  The minimum subtotal amount of the cart line to be eligible for a discount candidate.
+  The minimum subtotal amount of the cart line to be eligible for a discount candidate in the shop's currency.
   """
   minimumAmount: Decimal!
 }
@@ -4846,7 +4846,7 @@ input OrderMinimumSubtotal {
   excludedCartLineIds: [ID!]!
 
   """
-  The minimum subtotal amount of the order to be eligible for the discount.
+  The minimum subtotal amount of the order to be eligible for the discount in the shop's currency.
   """
   minimumAmount: Decimal!
 }

@@ -19,6 +19,15 @@ use super::schema;
 use shopify_function::prelude::*;
 use shopify_function::Result;
 
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+struct DiscountSettings {
+    percent: f64,
+    excludedTag: String,
+}
+
+
 #[shopify_function]
 fn cart_lines_discounts_generate_run(
     input: schema::cart_lines_discounts_generate_run::Input,
@@ -33,15 +42,33 @@ fn cart_lines_discounts_generate_run(
         return Ok(schema::CartLinesDiscountsGenerateRunResult { operations: vec![] });
     }
 
+    // Read settings JSON from metafield
+    let settings: DiscountSettings = input
+        .discount()
+        .metafield()
+        .and_then(|mf| Some(mf.value()))
+        .and_then(|val| serde_json::from_str::<DiscountSettings>(val).ok())
+        .unwrap_or(DiscountSettings {
+            percent: 10.0,
+            excludedTag: "NO_DISCOUNT".to_string(),
+        });
+
     let mut candidates: Vec<schema::ProductDiscountCandidate> = Vec::new();
 
    for line in input.cart().lines().iter() {
     match &line.merchandise() {
         schema::cart_lines_discounts_generate_run::input::cart::lines::Merchandise::ProductVariant(variant) => {
-            // Skip if product has the excluded tag
-           if *variant.product().has_any_tag() {
+            let product = variant.product();
+
+            // ✅ Skip if product has the excluded tag (from metafield settings)
+            if product
+                .has_tags()
+                .iter()
+                .any(|ht| ht.tag() == &settings.excludedTag && *ht.has_tag())
+            {
                 continue;
             }
+
 
             let target = schema::ProductDiscountCandidateTarget::CartLine(
                 schema::CartLineTarget {
@@ -52,9 +79,9 @@ fn cart_lines_discounts_generate_run(
 
             let candidate = schema::ProductDiscountCandidate {
                 targets: vec![target],
-                message: Some("10% off".to_string()),
+                message: Some(format!("{}% off", settings.percent)),
                 value: schema::ProductDiscountCandidateValue::Percentage(
-                    schema::Percentage { value: Decimal(10.0) },
+                    schema::Percentage { value: Decimal(settings.percent) },
                 ),
                 associated_discount_code: None,
             };
